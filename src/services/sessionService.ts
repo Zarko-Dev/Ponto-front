@@ -80,7 +80,7 @@ class SessionService {
   async endSession(sessionId: number): Promise<WorkSession> {
     try {
       console.log('📡 SessionService: Finalizando sessão:', sessionId);
-      const response = await api.post('/sessions/end');
+      const response = await api.post(`/sessions/${sessionId}/end`);
       console.log('✅ SessionService: Sessão finalizada:', response.data);
       return response.data.data || response.data;
     } catch (error) {
