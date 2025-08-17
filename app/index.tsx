@@ -33,8 +33,7 @@ export default function LoginScreen() {
       const success = await login(email, password);
       
       if (success) {
-        // Vamos verificar o tipo de usuário após o login no AuthContext
-        // O redirecionamento será feito automaticamente via navigation
+        
         router.replace('/dashboard');
       } else {
         Alert.alert('Erro', 'Email ou senha incorretos');
