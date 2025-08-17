@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import authService, { LoginData } from '../src/services/authService';
 
 export interface User {
   id: string;
@@ -14,7 +15,7 @@ interface AuthContextType {
   currentUser: User | null;
   users: User[];
   login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   addUser: (userData: Omit<User, 'id'>) => void;
   updateUser: (userId: string, userData: Partial<User>) => void;
   removeUser: (userId: string) => void;
@@ -69,22 +70,127 @@ export function AuthProvider({ children }: AuthProviderProps) {
     },
   ]);
 
+  // Carregar token salvo na inicialização
+  useEffect(() => {
+    const loadSavedToken = async () => {
+      console.log('🔄 AuthContext: Carregando token salvo...');
+      await authService.loadToken();
+      console.log('🔑 AuthContext: Token carregado:', global.token ? 'SIM' : 'NÃO');
+      
+      // Se tem token, tentar carregar dados do usuário
+      if (global.token) {
+        try {
+          console.log('👤 AuthContext: Carregando dados do usuário...');
+          const userData = await authService.getCurrentUser();
+          
+          const apiUser = {
+            id: userData.id,
+            nome: userData.name,
+            cpf: '000.000.000-00',
+            email: userData.email,
+            jornada: '8h/dia',
+            senha: '',
+            isAdmin: userData.role === 'ADMIN',
+          };
+          
+          setCurrentUser(apiUser);
+          console.log('✅ AuthContext: Usuário restaurado:', apiUser.nome);
+        } catch (error) {
+          console.error('❌ AuthContext: Erro ao carregar dados do usuário, limpando token...');
+          await authService.removeToken();
+          setCurrentUser(null);
+        }
+      }
+    };
+    
+    loadSavedToken();
+  }, []);
+
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Simular delay de autenticação
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const user = users.find(u => u.email === email && u.senha === password);
-    
-    if (user) {
-      setCurrentUser(user);
+    try {
+      console.log('🔐 AuthContext: Iniciando login...', { email });
+      
+      const loginData: LoginData = { email, password };
+      console.log('📤 AuthContext: Enviando dados para API...', loginData);
+      
+      const response = await authService.login(loginData);
+      console.log('📥 AuthContext: Resposta da API recebida:', response);
+      
+      // Converter dados da API para o formato do User local
+      const apiUser = {
+        id: response.user.id,
+        nome: response.user.name,
+        cpf: '000.000.000-00', // Valor padrão por enquanto
+        email: response.user.email,
+        jornada: '8h/dia', // Valor padrão por enquanto
+        senha: '', // Não armazenar senha
+        isAdmin: response.user.role === 'ADMIN',
+      };
+      
+      console.log('👤 AuthContext: Usuário convertido:', apiUser);
+      setCurrentUser(apiUser);
+      
+      console.log('✅ AuthContext: Login realizado com sucesso!');
       return true;
+      
+    } catch (error) {
+      console.error('❌ AuthContext: Erro no login:', error);
+      
+      // Se a API falhar, tentar com dados locais como fallback
+      console.log('🔄 AuthContext: Tentando fallback com dados locais...');
+      const user = users.find(u => u.email === email && u.senha === password);
+      
+      if (user) {
+        console.log('✅ AuthContext: Login local bem-sucedido!');
+        setCurrentUser(user);
+        return true;
+      }
+      
+      console.log('❌ AuthContext: Login falhou completamente');
+      return false;
     }
-    
-    return false;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    console.log('🚪 AuthContext: Iniciando processo de logout...');
+    
+    try {
+      // Limpar token da API
+      console.log('🌐 AuthContext: Fazendo logout na API...');
+      await authService.logout();
+      console.log('✅ AuthContext: Logout na API concluído');
+    } catch (error) {
+      console.error('⚠️ AuthContext: Erro ao fazer logout na API, continuando...', error);
+    }
+    
+    // Forçar limpeza completa do estado local
+    console.log('🧹 AuthContext: Limpando estado local...');
     setCurrentUser(null);
+    
+    // Limpar token global de forma forçada
+    console.log('🔑 AuthContext: Limpando token global...');
+    global.token = null;
+    
+    // Forçar remoção do token do storage
+    try {
+      await authService.removeToken();
+      console.log('✅ AuthContext: Token removido do storage');
+    } catch (error) {
+      console.error('❌ AuthContext: Erro ao remover token do storage:', error);
+    }
+    
+    console.log('✅ AuthContext: Logout realizado com sucesso');
+    console.log('🔍 AuthContext: Estado atual - Usuário:', currentUser, 'Token:', global.token);
+    
+    // Forçar uma nova verificação de estado após um pequeno delay
+    setTimeout(() => {
+      console.log('🔄 AuthContext: Forçando re-verificação de autenticação...');
+      // Garantir que o estado foi realmente limpo
+      if (currentUser !== null) {
+        console.log('⚠️ AuthContext: Estado ainda não foi limpo, forçando...');
+        setCurrentUser(null);
+      }
+    }, 100);
   };
 
   const addUser = (userData: Omit<User, 'id'>) => {

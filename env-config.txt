@@ -1,0 +1,28 @@
+# ========================================
+# CONFIGURAÇÃO DE VARIÁVEIS DE AMBIENTE
+# ========================================
+# 
+# Crie um arquivo chamado ".env" na raiz do projeto Ponto-front
+# e copie o conteúdo abaixo:
+
+# URL da API Backend
+EXPO_PUBLIC_API_URL=http://localhost:3000
+
+# Ambiente
+NODE_ENV=development
+
+# Configurações opcionais
+EXPO_PUBLIC_APP_NAME="Ponto Eletrônico"
+EXPO_PUBLIC_APP_VERSION="1.0.0"
+
+# ========================================
+# INSTRUÇÕES:
+# ========================================
+# 1. Crie um arquivo chamado ".env" na raiz do Ponto-front
+# 2. Copie o conteúdo acima para o arquivo
+# 3. Ajuste a URL da API conforme seu backend:
+#    - Se o backend estiver na porta 3000: http://localhost:3000
+#    - Se estiver em outra porta: http://localhost:PORTA
+#    - Para produção: https://sua-api.com
+# ========================================
+

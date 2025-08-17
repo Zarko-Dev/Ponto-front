@@ -19,28 +19,44 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
+  
+  // Redirecionar se já estiver autenticado
+  React.useEffect(() => {
+    if (isAuthenticated && global.token) {
+      console.log('ℹ️ LoginScreen: Usuário já autenticado, redirecionando...');
+      router.replace('/dashboard');
+    }
+  }, [isAuthenticated]);
 
   const handleLogin = async () => {
     if (!email || !password) {
+      console.log('❌ LoginScreen: Campos obrigatórios não preenchidos');
       Alert.alert('Erro', 'Por favor, preencha todos os campos');
       return;
     }
 
+    console.log('🚀 LoginScreen: Iniciando processo de login...', { email });
     setLoading(true);
     
     try {
+      console.log('📞 LoginScreen: Chamando função login do contexto...');
       const success = await login(email, password);
       
+      console.log('📊 LoginScreen: Resultado do login:', { success });
+      
       if (success) {
-        
+        console.log('✅ LoginScreen: Login bem-sucedido! Redirecionando...');
         router.replace('/dashboard');
       } else {
+        console.log('❌ LoginScreen: Login falhou - credenciais incorretas');
         Alert.alert('Erro', 'Email ou senha incorretos');
       }
     } catch (error) {
+      console.error('💥 LoginScreen: Erro durante o login:', error);
       Alert.alert('Erro', 'Falha no login. Tente novamente.');
     } finally {
+      console.log('🏁 LoginScreen: Processo de login finalizado');
       setLoading(false);
     }
   };
